@@ -56,6 +56,7 @@ jobs:
             -D OPENCV_EXTRA_MODULES_PATH=D:\opencv_contrib\modules ^
             -D BUILD_EXAMPLES=OFF -D BUILD_TESTS=OFF -D BUILD_PERF_TESTS=OFF -D BUILD_DOCS=OFF ^
             -D WITH_FFMPEG=OFF ^
+            -D BUILD_opencv_apps=OFF ^
             ..
           cmake --build . --config Release --parallel
           cmake --install .
