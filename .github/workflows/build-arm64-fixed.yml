@@ -45,11 +45,13 @@ jobs:
         if: steps.cache-opencv.outputs.cache-hit != 'true'
         shell: cmd
         run: |
+          rem === Init VS env: ARM64 target, host x64 ===
           for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath`) do set VSINSTALL=%%i
           call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=arm64 -host_arch=x64 -no_logo
       
-          REM Nettoyage éventuel
-          if exist D:\opencv-install rmdir /s /q D:\opencv-install
+          rem (optionnel) purger MinGW du PATH pour éviter sa détection
+          set "PATH=%PATH:C:\mingw64\bin;=%"
+          set "PATH=%PATH:C:\msys64\usr\bin;=%"
       
           cd /d D:\opencv
           if not exist build mkdir build
@@ -67,27 +69,32 @@ jobs:
           cmake --build . --config Release --parallel
           cmake --install .
 
-          echo ===== After install, expect ARM64 layout =====
-          dir /b D:\opencv-install
-          if exist D:\opencv-install\arm64\vc17\lib dir /b D:\opencv-install\arm64\vc17\lib
 
       - name: Build OpenCVSharp Native (ARM64)
         shell: cmd
         run: |
+          rem === Init VS env ===
           for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath`) do set VSINSTALL=%%i
           call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=arm64 -host_arch=x64 -no_logo
       
-          REM Choix du bon OpenCV_DIR (layout “distrib” Windows)
-          set "OpenCV_DIR=D:\opencv-install"
-          if exist D:\opencv-install\arm64\vc17\lib set "OpenCV_DIR=D:\opencv-install\arm64\vc17\lib"
+          set "PATH=%PATH:C:\mingw64\bin;=%"
+          set "PATH=%PATH:C:\msys64\usr\bin;=%"
       
-          echo Using OpenCV_DIR=%OpenCV_DIR%
+          set "OpenCV_DIR=D:\opencv-install\arm64\vc17\lib"
+          if not exist "%OpenCV_DIR%" (
+            echo [ERROR] OpenCV ARM64 non installe a l'emplacement attendu.
+            dir D:\opencv-install
+            exit /b 1
+          )
       
           cd /d ${{ github.workspace }}
           if not exist build_native mkdir build_native
           cd build_native
       
+          rem Forcer MSVC si besoin (ceinture et bretelles)
           cmake -G "Ninja" ^
+            -D CMAKE_C_COMPILER=cl.exe ^
+            -D CMAKE_CXX_COMPILER=cl.exe ^
             -D CMAKE_BUILD_TYPE=Release ^
             -D OpenCV_DIR=%OpenCV_DIR% ^
             -D CMAKE_INSTALL_PREFIX=%CD%\install ^
