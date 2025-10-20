@@ -65,10 +65,16 @@ jobs:
             ..
       
           cmake --build . --config Release --parallel
-          cmake --install . --config Release
-      
-          echo ===== Expect libs here =====
+          echo === POST-BUILD CHECK ===
+          dir /b "%CD%\lib\Release"
+          dir /b "%CD%\bin\Release"
+          
+          cmake --build . --config Release --target INSTALL
+
+          echo ===== After INSTALL target =====
           if exist D:\opencv-install\ARM64\vc17\lib dir /b D:\opencv-install\ARM64\vc17\lib
+          if exist D:\opencv-install\ARM64\vc17\bin dir /b D:\opencv-install\ARM64\vc17\bin
+    
 
           
       - name: Build OpenCVSharp Native (ARM64)
