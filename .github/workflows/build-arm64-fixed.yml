@@ -67,17 +67,31 @@ jobs:
           REM --- Re-enter DevCmd for this step too ---
           for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath`) do set VSINSTALL=%%i
           call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=arm64 -host_arch=x64 -no_logo
-
+      
+          REM --- Diagnostics: vérifier où est l'OpenCVConfig.cmake restauré/ installé ---
+          if not exist D:\opencv-install (
+            echo [ERROR] D:\opencv-install absent. Le cache n'a pas restauré ou l'etape OpenCV n'a pas tourne.
+            dir D:\
+            exit /b 1
+          )
+          echo ===== Listing of D:\opencv-install\lib\cmake\opencv4 =====
+          dir /b D:\opencv-install\lib\cmake\opencv4
+          echo ================================================
+      
+          set "OpenCV_DIR=D:\opencv-install\lib\cmake\opencv4"
+          set "CMAKE_PREFIX_PATH=D:\opencv-install"
+      
           cd /d ${{ github.workspace }}
           if not exist build_native mkdir build_native
           cd build_native
-
+      
           cmake -G "Ninja" ^
             -D CMAKE_BUILD_TYPE=Release ^
-            -D OpenCV_DIR=D:\opencv-install\lib\cmake\opencv4 ^
+            -D OpenCV_DIR=%OpenCV_DIR% ^
+            -D CMAKE_PREFIX_PATH=%CMAKE_PREFIX_PATH% ^
             -D CMAKE_INSTALL_PREFIX=%CD%\install ^
             ..\src\OpenCvSharpExtern
-
+      
           cmake --build . --config Release --parallel
           cmake --install .
 
