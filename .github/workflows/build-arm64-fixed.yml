@@ -97,7 +97,7 @@ jobs:
           for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath`) do set VSINSTALL=%%i
           call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=arm64 -host_arch=x64 -no_logo
 
-          set "OpenCV_DIR=D:\opencv-install\ARM64\vc17\lib"
+          set "OpenCV_DIR=D:\opencv\build"
           if not exist "%OpenCV_DIR%\opencv_world*.lib" if not exist "%OpenCV_DIR%\opencv_core*.lib" (
             echo [ERROR] Aucun .lib OpenCV trouve dans %OpenCV_DIR%
             dir D:\opencv-install
