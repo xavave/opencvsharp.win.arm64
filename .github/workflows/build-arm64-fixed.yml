@@ -1,0 +1,87 @@
+name: Build OpenCVSharp ARM64
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-opencv-arm64:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout OpenCVSharp
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup Ninja
+        run: choco install -y ninja
+
+      - name: Cache OpenCV
+        id: cache-opencv
+        uses: actions/cache@v4
+        with:
+          path: D:\opencv-install
+          key: opencv-4.12.0-arm64-${{ runner.os }}
+
+      - name: Clone OpenCV
+        if: steps.cache-opencv.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          cd /d D:\
+          git clone --depth 1 --branch 4.12.0 https://github.com/opencv/opencv.git
+          git clone --depth 1 --branch 4.12.0 https://github.com/opencv/opencv_contrib.git
+
+      - name: Build OpenCV with Contrib (ARM64 MSVC + Ninja)
+        if: steps.cache-opencv.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          REM --- Locate VS and enter DevCmd for ARM64 ---
+          for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath`) do set VSINSTALL=%%i
+          call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=arm64 -host_arch=x64 -no_logo
+
+          cd /d D:\opencv
+          if not exist build mkdir build
+          cd build
+
+          cmake -G "Ninja" ^
+            -D CMAKE_BUILD_TYPE=Release ^
+            -D CMAKE_INSTALL_PREFIX=D:\opencv-install ^
+            -D OPENCV_EXTRA_MODULES_PATH=D:\opencv_contrib\modules ^
+            -D BUILD_EXAMPLES=OFF -D BUILD_TESTS=OFF -D BUILD_PERF_TESTS=OFF -D BUILD_DOCS=OFF ^
+            -D WITH_FFMPEG=OFF ^
+            ..
+          cmake --build . --config Release --parallel
+          cmake --install .
+
+      - name: Build OpenCVSharp Native (ARM64)
+        shell: cmd
+        run: |
+          REM --- Re-enter DevCmd for this step too ---
+          for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath`) do set VSINSTALL=%%i
+          call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=arm64 -host_arch=x64 -no_logo
+
+          cd /d ${{ github.workspace }}
+          if not exist build_native mkdir build_native
+          cd build_native
+
+          cmake -G "Ninja" ^
+            -D CMAKE_BUILD_TYPE=Release ^
+            -D OpenCV_DIR=D:\opencv-install\lib\cmake\opencv4 ^
+            -D CMAKE_INSTALL_PREFIX=%CD%\install ^
+            ..\src\OpenCvSharpExtern
+
+          cmake --build . --config Release --parallel
+          cmake --install .
+
+      - name: Upload Native Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencvsharp-native-arm64-windows
+          path: build_native/install/**
