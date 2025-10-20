@@ -48,36 +48,48 @@ jobs:
         run: |
           for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath`) do set VSINSTALL=%%i
           call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=arm64 -host_arch=x64 -no_logo
-
+      
           if exist D:\opencv-install rmdir /s /q D:\opencv-install
-
+          if exist D:\opencv\build rmdir /s /q D:\opencv\build
+      
           cd /d D:\opencv
-          if not exist build mkdir build
+          mkdir build
           cd build
-
-          cmake -G "Visual Studio 17 2022" -A ARM64 -D CMAKE_BUILD_TYPE=Release -D CMAKE_INSTALL_PREFIX=D:\opencv-install -D OPENCV_EXTRA_MODULES_PATH=D:\opencv_contrib\modules -D BUILD_EXAMPLES=OFF -D BUILD_TESTS=OFF -D BUILD_PERF_TESTS=OFF -D BUILD_DOCS=OFF -D BUILD_opencv_apps=OFF -D BUILD_opencv_world=ON -D BUILD_LIST=core,imgproc,imgcodecs,highgui,videoio,calib3d,features2d,flann,ml,photo,objdetect,video,dnn -D CPU_BASELINE=NEON -D CPU_DISPATCH= -D ENABLE_SSE=OFF -D ENABLE_SSE2=OFF -D ENABLE_AVX=OFF -D WITH_JPEG=OFF -D BUILD_JPEG=OFF ..
-
+      
+          cmake -G "Visual Studio 17 2022" -A ARM64 ^
+            -D CMAKE_BUILD_TYPE=Release ^
+            -D CMAKE_INSTALL_PREFIX=D:\opencv-install ^
+            -D OPENCV_EXTRA_MODULES_PATH=D:\opencv_contrib\modules ^
+            -D BUILD_EXAMPLES=OFF -D BUILD_TESTS=OFF -D BUILD_PERF_TESTS=OFF -D BUILD_DOCS=OFF ^
+            -D BUILD_opencv_apps=OFF ^
+            -D BUILD_opencv_world=ON ^
+            -D BUILD_LIST=core,imgproc,imgcodecs,highgui,videoio,calib3d,features2d,flann,ml,photo,objdetect,video,dnn ^
+            -D CPU_BASELINE=NEON -D CPU_DISPATCH= -D ENABLE_SSE=OFF -D ENABLE_SSE2=OFF -D ENABLE_AVX=OFF ^
+            -D WITH_JPEG=OFF -D BUILD_JPEG=OFF ^
+            -D WITH_IPP=OFF -D WITH_IPP_IW=OFF -D BUILD_IPP_IW=OFF -D BUILD_ITT=OFF ^
+              ..
+      
       - name: Build+Install OpenCV (ARM64)
         if: steps.cache-opencv.outputs.cache-hit != 'true'
         shell: cmd
         run: |
           for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath`) do set VSINSTALL=%%i
           call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=arm64 -host_arch=x64 -no_logo
-
+      
           cd /d D:\opencv\build
-
+      
           cmake --build . --config Release --parallel
-
+      
           echo === POST-BUILD CHECK ===
           dir /b "%CD%\lib\Release"
           dir /b "%CD%\bin\Release"
-
-          rem Utiliser la cible INSTALL (plus fiable que --install avec VS)
+      
           cmake --build . --config Release --target INSTALL
-
+      
           echo ===== After INSTALL target =====
           if exist D:\opencv-install\ARM64\vc17\lib dir /b D:\opencv-install\ARM64\vc17\lib
           if exist D:\opencv-install\ARM64\vc17\bin dir /b D:\opencv-install\ARM64\vc17\bin
+
 
       - name: Build OpenCVSharp Native (ARM64)
         shell: cmd
