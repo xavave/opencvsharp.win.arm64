@@ -1,0 +1,90 @@
+name: Build OpenCVSharp ARM64
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-opencv-arm64:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout OpenCVSharp
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v2
+    
+    - name: Setup Ninja
+      run: choco install ninja
+    
+    - name: Verify Ninja Installation
+      shell: cmd
+      run: |
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsarm64.bat"
+        ninja --version
+        echo Number of processors: %NUMBER_OF_PROCESSORS%
+    
+    - name: Cache OpenCV
+      id: cache-opencv
+      uses: actions/cache@v4
+      with:
+        path: D:\opencv-install
+        key: opencv-4.12.0-arm64-${{ runner.os }}
+    
+    - name: Clone OpenCV
+      if: steps.cache-opencv.outputs.cache-hit != 'true'
+      run: |
+        cd D:\
+        git clone --depth 1 --branch 4.12.0 https://github.com/opencv/opencv.git
+        git clone --depth 1 --branch 4.12.0 https://github.com/opencv/opencv_contrib.git
+    
+    - name: Build OpenCV with Contrib
+      if: steps.cache-opencv.outputs.cache-hit != 'true'
+      shell: cmd
+      run: |
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsarm64.bat"
+        cd D:\opencv
+        mkdir build
+        cd build
+        cmake -G "Ninja" ^
+          -D CMAKE_BUILD_TYPE=Release ^
+          -D CMAKE_INSTALL_PREFIX=D:\opencv-install ^
+          -D OPENCV_EXTRA_MODULES_PATH=D:\opencv_contrib\modules ^
+          -D BUILD_EXAMPLES=OFF ^
+          -D BUILD_TESTS=OFF ^
+          -D BUILD_PERF_TESTS=OFF ^
+          -D BUILD_DOCS=OFF ^
+          -D WITH_FFMPEG=OFF ^
+          -D BUILD_opencv_python2=OFF ^
+          -D BUILD_opencv_python3=OFF ^
+          -D BUILD_JAVA=OFF ^
+          ..
+        cmake --build . --parallel
+        cmake --install .
+    
+    - name: Build OpenCVSharp Native
+      shell: cmd
+      run: |
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsarm64.bat"
+        cd ${{ github.workspace }}
+        mkdir build_native
+        cd build_native
+        cmake -G "Ninja" ^
+          -D CMAKE_BUILD_TYPE=Release ^
+          -D OpenCV_DIR=D:\opencv-install ^
+          -D CMAKE_INSTALL_PREFIX=%CD%\install ^
+          ..\src\OpenCvSharpExtern
+        cmake --build . --parallel
+        cmake --install .
+    
+    - name: Upload Native Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: opencvsharp-native-arm64-windows
+        path: build_native/install/**/*
