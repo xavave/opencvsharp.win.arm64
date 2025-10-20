@@ -1,4 +1,26 @@
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.16)
+project(OpenCvSharpExtern LANGUAGES C CXX)
+
+# --- Shims for ocv_* macros when building against installed OpenCV ---
+if(NOT COMMAND ocv_target_compile_definitions)
+  function(ocv_target_compile_definitions target)
+    # Forward to standard CMake if OpenCV's internal macro isn't available
+    target_compile_definitions(${target} PRIVATE ${ARGN})
+  endfunction()
+endif()
+
+if(NOT COMMAND ocv_target_include_directories)
+  function(ocv_target_include_directories target)
+    target_include_directories(${target} PRIVATE ${ARGN})
+  endfunction()
+endif()
+
+if(NOT COMMAND ocv_target_link_libraries)
+  function(ocv_target_link_libraries target)
+    target_link_libraries(${target} PRIVATE ${ARGN})
+  endfunction()
+endif()
+
 
 include_directories(${OpenCV_INCLUDE_DIR})
 IF(!EMSCRIPTEN)
