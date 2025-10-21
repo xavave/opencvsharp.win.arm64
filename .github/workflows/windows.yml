@@ -1,0 +1,128 @@
+name: Build OpenCVSharp ARM64
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  OPENCV_VERSION: 4.11.0
+
+jobs:
+  build-opencv-arm64:
+    runs-on: windows-2022
+
+    steps:
+      - name: Checkout OpenCVSharp
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          submodules: recursive
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11.5
+        with:
+          vcpkgGitCommitId: "64adda19c86e89526b5e27703a193c14477cce07"
+          vcpkgGitURL: https://github.com/shimat/vcpkg.git
+
+      - name: Install Tesseract via vcpkg
+        shell: powershell
+        run: |
+          echo $env:VCPKG_ROOT
+          & $env:VCPKG_ROOT\vcpkg install tesseract:arm64-windows-static
+          & $env:VCPKG_ROOT\vcpkg integrate install
+          & $env:VCPKG_ROOT\vcpkg list
+
+      - name: Cache OpenCV Build
+        id: cache-opencv
+        uses: actions/cache@v4
+        with:
+          path: D:\opencv-build
+          key: opencv-${{ env.OPENCV_VERSION }}-arm64-${{ runner.os }}-v4
+
+      - name: Clone OpenCV
+        if: steps.cache-opencv.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          cd /d D:\
+          git clone --depth 1 --branch ${{ env.OPENCV_VERSION }} https://github.com/opencv/opencv.git
+          git clone --depth 1 --branch ${{ env.OPENCV_VERSION }} https://github.com/opencv/opencv_contrib.git
+
+      - name: Build OpenCV for ARM64
+        if: steps.cache-opencv.outputs.cache-hit != 'true'
+        shell: powershell
+        run: |
+          $platform = "arm64"
+          $vcpkgPath = $env:VCPKG_ROOT
+          $buildDirectory = "D:\opencv-build"
+          
+          New-Item -ItemType Directory -Force -Path $buildDirectory | Out-Null
+          Set-Location $buildDirectory
+          
+          cmake -G "Visual Studio 17 2022" `
+            -A ARM64 `
+            -D CMAKE_BUILD_TYPE=Release `
+            -D CMAKE_INSTALL_PREFIX=install `
+            -D INSTALL_C_EXAMPLES=OFF `
+            -D INSTALL_PYTHON_EXAMPLES=OFF `
+            -D BUILD_DOCS=OFF `
+            -D BUILD_WITH_DEBUG_INFO=OFF `
+            -D BUILD_EXAMPLES=OFF `
+            -D BUILD_TESTS=OFF `
+            -D BUILD_PERF_TESTS=OFF `
+            -D BUILD_JAVA=OFF `
+            -D BUILD_opencv_apps=OFF `
+            -D BUILD_opencv_datasets=OFF `
+            -D BUILD_opencv_gapi=OFF `
+            -D BUILD_opencv_java_bindings_generator=OFF `
+            -D BUILD_opencv_js=OFF `
+            -D BUILD_opencv_js_bindings_generator=OFF `
+            -D BUILD_opencv_objc_bindings_generator=OFF `
+            -D BUILD_opencv_python_bindings_generator=OFF `
+            -D BUILD_opencv_python_tests=OFF `
+            -D BUILD_opencv_ts=OFF `
+            -D BUILD_opencv_world=OFF `
+            -D WITH_MSMF=ON `
+            -D WITH_MSMF_DXVA=ON `
+            -D WITH_QT=OFF `
+            -D WITH_FREETYPE=OFF `
+            -D WITH_TESSERACT=ON `
+            -D WITH_CAROTENE=OFF `
+            -D "Tesseract_INCLUDE_DIR=${vcpkgPath}/installed/${platform}-windows-static/include" `
+            -D "Tesseract_LIBRARY=${vcpkgPath}/installed/${platform}-windows-static/lib/tesseract54.lib" `
+            -D "Lept_LIBRARY=${vcpkgPath}/installed/${platform}-windows-static/lib/leptonica-1.84.1.lib" `
+            -D ENABLE_CXX11=1 `
+            -D OPENCV_ENABLE_NONFREE=ON `
+            -D OPENCV_EXTRA_MODULES_PATH=D:/opencv_contrib/modules `
+            -D BUILD_SHARED_LIBS=OFF `
+            D:/opencv
+          
+          msbuild INSTALL.vcxproj /t:build /p:configuration=Release /p:platform=ARM64 /maxcpucount
+
+      - name: Build OpenCVSharp Native
+        shell: powershell
+        run: |
+          Set-Location ${{ github.workspace }}
+          
+          if (Test-Path build_native) { Remove-Item -Recurse -Force build_native }
+          New-Item -ItemType Directory -Force -Path build_native | Out-Null
+          Set-Location build_native
+          
+          cmake -G "Visual Studio 17 2022" -A ARM64 `
+            -D CMAKE_BUILD_TYPE=Release `
+            -D OpenCV_DIR=D:\opencv-build\install `
+            -D CMAKE_INSTALL_PREFIX="$PWD\install" `
+            ..\src\OpenCvSharpExtern
+          
+          msbuild INSTALL.vcxproj /t:build /p:configuration=Release /p:platform=ARM64
+
+      - name: Upload OpenCVSharp Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencvsharp-native-arm64-windows
+          path: build_native/install/**/*
