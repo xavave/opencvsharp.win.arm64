@@ -20,15 +20,12 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Setup Ninja
-        run: choco install -y ninja
-
       - name: Cache OpenCV
         id: cache-opencv
         uses: actions/cache@v4
         with:
           path: D:\opencv-install
-          key: opencv-4.11.0-msvc-vs17-arm64-v2-${{ runner.os }}
+          key: opencv-4.11.0-arm64-v3-${{ runner.os }}
 
       - name: Clone OpenCV
         if: steps.cache-opencv.outputs.cache-hit != 'true'
@@ -38,75 +35,68 @@ jobs:
           git clone --depth 1 --branch 4.11.0 https://github.com/opencv/opencv.git
           git clone --depth 1 --branch 4.11.0 https://github.com/opencv/opencv_contrib.git
 
-      - name: Configure OpenCV
+      - name: Configure OpenCV for ARM64
         if: steps.cache-opencv.outputs.cache-hit != 'true'
         shell: cmd
         run: |
-          for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath`) do set VSINSTALL=%%i
-          call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=arm64 -host_arch=x64 -no_logo
           cd /d D:\opencv
           if exist build rmdir /s /q build
           mkdir build
           cd build
+          
           cmake -G "Visual Studio 17 2022" -A ARM64 ^
             -D CMAKE_BUILD_TYPE=Release ^
             -D CMAKE_INSTALL_PREFIX=D:\opencv-install ^
             -D OPENCV_EXTRA_MODULES_PATH=D:\opencv_contrib\modules ^
-            -D BUILD_EXAMPLES=OFF -D BUILD_TESTS=OFF -D BUILD_PERF_TESTS=OFF -D BUILD_DOCS=OFF ^
+            -D BUILD_DOCS=OFF ^
+            -D BUILD_EXAMPLES=OFF ^
+            -D BUILD_TESTS=OFF ^
+            -D BUILD_PERF_TESTS=OFF ^
+            -D BUILD_JAVA=OFF ^
             -D BUILD_opencv_apps=OFF ^
-            -D BUILD_opencv_world=ON ^
+            -D BUILD_opencv_datasets=OFF ^
+            -D BUILD_opencv_gapi=OFF ^
+            -D BUILD_opencv_java_bindings_generator=OFF ^
+            -D BUILD_opencv_js=OFF ^
+            -D BUILD_opencv_js_bindings_generator=OFF ^
+            -D BUILD_opencv_python_bindings_generator=OFF ^
+            -D BUILD_opencv_python_tests=OFF ^
+            -D BUILD_opencv_ts=OFF ^
+            -D BUILD_opencv_world=OFF ^
             -D BUILD_opencv_dnn=OFF ^
-            -D WITH_FFMPEG=OFF ^
+            -D WITH_MSMF=ON ^
+            -D WITH_MSMF_DXVA=ON ^
+            -D WITH_QT=OFF ^
+            -D WITH_CAROTENE=OFF ^
+            -D ENABLE_CXX11=1 ^
+            -D BUILD_SHARED_LIBS=OFF ^
             ..
-          echo.
-          echo ===== Configuration Summary =====
-          findstr /C:"BUILD_opencv_world" CMakeCache.txt
-          findstr /C:"CMAKE_INSTALL_PREFIX" CMakeCache.txt
 
-      - name: Build OpenCV
+      - name: Build OpenCV with MSBuild
         if: steps.cache-opencv.outputs.cache-hit != 'true'
         shell: cmd
         run: |
           cd /d D:\opencv\build
-          cmake --build . --config Release --parallel
-          echo.
-          echo ===== Verification de la structure du build =====
-          dir /s /b lib 2>nul | findstr /i "Release"
-          dir /s /b bin 2>nul | findstr /i "Release"
-          echo.
-          echo ===== Recherche specifique opencv_world =====
-          dir /s /b *.lib 2>nul | findstr /i "opencv_world" || echo Aucun opencv_world.lib trouve
-          dir /s /b *.dll 2>nul | findstr /i "opencv_world" || echo Aucun opencv_world.dll trouve
-          echo.
-          echo ===== Liste de tous les .lib compiles =====
-          dir /s /b lib\Release\*.lib 2>nul || echo Aucun .lib dans lib\Release
-          echo.
-          echo ===== Verifier si le projet opencv_world existe =====
-          if exist "modules\world\opencv_world.vcxproj" (
-            echo Project opencv_world.vcxproj existe
-          ) else (
-            echo ERREUR: opencv_world.vcxproj n existe pas!
-          )
+          msbuild INSTALL.vcxproj /t:build /p:configuration=Release /p:platform=ARM64 /maxcpucount
+          
+          echo ===== Verification =====
+          dir /s /b lib\Release\*.lib | findstr opencv
 
       - name: Build OpenCVSharp Native
         shell: cmd
         run: |
-          for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath`) do set VSINSTALL=%%i
-          call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=arm64 -host_arch=x64 -no_logo
-      
           cd /d ${{ github.workspace }}
           if exist build_native rmdir /s /q build_native
           mkdir build_native
           cd build_native
-      
+          
           cmake -G "Visual Studio 17 2022" -A ARM64 ^
             -D CMAKE_BUILD_TYPE=Release ^
             -D OpenCV_DIR=D:\opencv-install ^
             -D CMAKE_INSTALL_PREFIX=%CD%\install ^
             ..\src\OpenCvSharpExtern
-      
-          cmake --build . --config Release
-          cmake --install .
+          
+          msbuild INSTALL.vcxproj /t:build /p:configuration=Release /p:platform=ARM64
 
       - name: Upload Native Artifacts
         uses: actions/upload-artifact@v4
