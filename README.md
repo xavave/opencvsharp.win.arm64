@@ -41,7 +41,7 @@ cd C:\dev
 Remove-Item -Recurse -Force build_win_arm64
 
 ### launch build
-.\build_windows.ps1
+ powershell -ExecutionPolicy Bypass -File .\build_windows.ps1
 
 then rebuild  OpenCVSharp :
 powershell
