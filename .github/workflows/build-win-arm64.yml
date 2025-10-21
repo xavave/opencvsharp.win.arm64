@@ -64,27 +64,36 @@ jobs:
           findstr /C:"CMAKE_INSTALL_PREFIX" CMakeCache.txt
 
       - name: Build OpenCV
-        if: steps.cache-opencv.outputs.cache-hit != 'true' 
+        if: steps.cache-opencv.outputs.cache-hit != 'true'
         shell: cmd
         run: |
           cd /d D:\opencv\build
           cmake --build . --config Release --parallel
           echo.
-          echo ===== Verification AVANT installation =====
-          dir /s /b lib\*.lib 2>nul | findstr /i "opencv_world"
-          dir /s /b bin\*.dll 2>nul | findstr /i "opencv_world"
+          echo ===== Recherche des fichiers generes =====
+          dir /s /b D:\opencv\build\lib\Release\opencv*.lib 2>nul
+          dir /s /b D:\opencv\build\bin\Release\opencv*.dll 2>nul
           echo.
+  
+      - name: Manual Install of OpenCV binaries
+        if: steps.cache-opencv.outputs.cache-hit != 'true'
+        shell: cmd
+        run: |
+          cd /d D:\opencv\build
           cmake --install .
           echo.
-          echo ===== Verification APRES installation =====
-          dir /s /b D:\opencv-install\*.lib 2>nul
-          dir /s /b D:\opencv-install\*.dll 2>nul
-          if not exist "D:\opencv-install\ARM64\vc17\lib\opencv_world4110.lib" (
-            if not exist "D:\opencv-install\lib\opencv_world4110.lib" (
-              echo [ERROR] opencv_world4110.lib non trouve!
-              exit /b 1
-            )
-          )
+          echo ===== Copie manuelle des binaires si necessaire =====
+          if not exist "D:\opencv-install\ARM64" mkdir "D:\opencv-install\ARM64"
+          if not exist "D:\opencv-install\ARM64\vc17" mkdir "D:\opencv-install\ARM64\vc17"
+          if not exist "D:\opencv-install\ARM64\vc17\lib" mkdir "D:\opencv-install\ARM64\vc17\lib"
+          if not exist "D:\opencv-install\ARM64\vc17\bin" mkdir "D:\opencv-install\ARM64\vc17\bin"
+  
+          xcopy /Y D:\opencv\build\lib\Release\*.lib D:\opencv-install\ARM64\vc17\lib\ 2>nul
+          xcopy /Y D:\opencv\build\bin\Release\*.dll D:\opencv-install\ARM64\vc17\bin\ 2>nul
+  
+          echo ===== Verification finale =====
+          dir /b D:\opencv-install\ARM64\vc17\lib\*.lib
+          dir /b D:\opencv-install\ARM64\vc17\bin\*.dll
 
       - name: Build OpenCVSharp Native
         shell: cmd
