@@ -51,7 +51,11 @@ jobs:
             -D CMAKE_BUILD_TYPE=Release ^
             -D CMAKE_INSTALL_PREFIX=D:\opencv-install ^
             -D OPENCV_EXTRA_MODULES_PATH=D:\opencv_contrib\modules ^
-            -D BUILD_EXAMPLES=OFF -D BUILD_TESTS=OFF -D BUILD_PERF_TESTS=OFF ^
+            -D BUILD_EXAMPLES=OFF ^
+            -D BUILD_TESTS=OFF ^
+            -D BUILD_PERF_TESTS=OFF ^
+            -D BUILD_DOCS=OFF ^
+            -D BUILD_opencv_apps=OFF ^
             -D BUILD_opencv_world=ON ^
             -D BUILD_opencv_dnn=OFF ^
             -D WITH_FFMPEG=OFF ^
