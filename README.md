@@ -22,7 +22,7 @@ Open and build build_win_[x64 or x86]/OpenCV.sln by Visual Studio.
 You can change the target platform and the vcpkg path by editing the .ps1 file.
 
 
-##### Change here #####
+##### Change in build_windows.ps1 #####
 
 $vcpkgPath = "C:\Tools\vcpkg"
 
