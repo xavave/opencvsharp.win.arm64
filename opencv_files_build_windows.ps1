@@ -56,7 +56,7 @@ function BuildForWindows($platform, $vcpkgPath, $runMsbuild) {
         -D WITH_CAROTENE=${caroteneFlag} `
         -D Tesseract_INCLUDE_DIR="${vcpkgPath}/installed/${platform}-windows-static/include" `
         -D Tesseract_LIBRARY="${vcpkgPath}/installed/${platform}-windows-static/lib/tesseract55.lib" `
-        -D Lept_LIBRARY="${vcpkgPath}/installed/${platform}-windows-static/lib/leptonica-1.81.0.lib" `
+        -D Lept_LIBRARY="${vcpkgPath}/installed/${platform}-windows-static/lib/leptonica-1.85.0.lib" `
         -D ENABLE_CXX11=1 `
         -D OPENCV_ENABLE_NONFREE=ON `
         -D OPENCV_EXTRA_MODULES_PATH=../opencv_contrib/modules `
