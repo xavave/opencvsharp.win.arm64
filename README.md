@@ -1,17 +1,29 @@
 # Build for Windows
+
 Clone
+
 git clone --recursive https://github.com/shimat/opencv_files
-# Or
+### Or
+
 git clone https://github.com/shimat/opencv_files
+
 git submodule update --init --recursive
+
 Install Tesseract
+
 vcpkg install tesseract:x64-windows-static
+
 vcpkg install tesseract:x86-windows-static
+
 Run build_windows.ps1
+
 Open and build build_win_[x64 or x86]/OpenCV.sln by Visual Studio.
+
 You can change the target platform and the vcpkg path by editing the .ps1 file.
 
+
 ##### Change here #####
+
 $vcpkgPath = "C:\Tools\vcpkg"
 $platform = "x64"
 #$platform = "x86"
