@@ -1,136 +1,85 @@
-name: Build OpenCVSharp ARM64
+name: Windows Server 2022
 
 on:
-  push:
-    branches: [ main, master ]
   pull_request:
-    branches: [ main, master ]
+    types: [synchronize, opened]
   workflow_dispatch:
 
 env:
   OPENCV_VERSION: 4.11.0
 
 jobs:
-  build-opencv-arm64:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform: ["win"]
+        arch: ["x86", "x64", "arm64"]
+        # Retiré ARM (32-bit) et arm64 de l'exclusion
+
     runs-on: windows-2022
 
     steps:
-      - name: Checkout OpenCVSharp
+      - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
           submodules: recursive
 
+      - name: Install Server-Media-Foundation
+        shell: powershell
+        run: |
+          Install-WindowsFeature Server-Media-Foundation
+
       - name: Add msbuild to PATH
         uses: microsoft/setup-msbuild@v2
 
+      - name: Install NASM to support SIMD optimizations
+        uses: ilammy/setup-nasm@v1
+        if: ${{ matrix.arch != 'arm64' }}
+
       - name: Setup vcpkg
         uses: lukka/run-vcpkg@v11.5
+        if: ${{ matrix.platform == 'win' }}
         with:
-          vcpkgGitCommitId: "64adda19c86e89526b5e27703a193c14477cce07"
+          vcpkgGitCommitId: "41c447cc210dc39aa85d4a5f58b4a1b9e573b3dc"
           vcpkgGitURL: https://github.com/shimat/vcpkg.git
 
-      - name: Install Tesseract via vcpkg
+      - name: Vcpkg
+        shell: powershell
+        if: ${{ matrix.platform == 'win' }}
+        run: |
+          echo ${env:VCPKG_ROOT}
+          & ${env:VCPKG_ROOT}\vcpkg install tesseract:${{matrix.arch}}-windows-static
+          & ${env:VCPKG_ROOT}\vcpkg integrate install
+          & ${env:VCPKG_ROOT}\vcpkg list
+          ls ${env:VCPKG_ROOT}\installed
+          ls ${env:VCPKG_ROOT}\installed\${{matrix.arch}}-windows-static
+          ls ${env:VCPKG_ROOT}\installed\${{matrix.arch}}-windows-static\include
+          ls ${env:VCPKG_ROOT}\installed\${{matrix.arch}}-windows-static\lib
+
+      - name: Build OpenCV
         shell: powershell
         run: |
-          echo $env:VCPKG_ROOT
-          & $env:VCPKG_ROOT\vcpkg install tesseract:arm64-windows-static
-          & $env:VCPKG_ROOT\vcpkg integrate install
-          & $env:VCPKG_ROOT\vcpkg list
+          Set-PSDebug -Trace 1
+          if ("${{matrix.platform}}" -eq 'win'){
+            . ".\build_windows.ps1"
+            BuildForWindows ${{matrix.arch}} "${env:VCPKG_ROOT}" $TRUE
+          }
+          elseif ("${{matrix.platform}}" -eq 'uwp'){
+            . ".\build_uwp.ps1"
+            BuildForUWP ${{matrix.arch}} "${env:VCPKG_ROOT}" $TRUE
+          }
 
-      - name: Cache OpenCV Build
-        id: cache-opencv
-        uses: actions/cache@v4
-        with:
-          path: D:\opencv-build
-          key: opencv-${{ env.OPENCV_VERSION }}-arm64-${{ runner.os }}-v4
-
-      - name: Clone OpenCV
-        if: steps.cache-opencv.outputs.cache-hit != 'true'
-        shell: cmd
-        run: |
-          cd /d D:\
-          git clone --depth 1 --branch ${{ env.OPENCV_VERSION }} https://github.com/opencv/opencv.git
-          git clone --depth 1 --branch ${{ env.OPENCV_VERSION }} https://github.com/opencv/opencv_contrib.git
-
-      - name: Build OpenCV for ARM64
-        if: steps.cache-opencv.outputs.cache-hit != 'true'
+      - name: Set Version Variable
+        id: version
         shell: powershell
         run: |
-          $buildDirectory = "D:\opencv-build"
-          
-          New-Item -ItemType Directory -Force -Path $buildDirectory | Out-Null
-          Set-Location $buildDirectory
-          
-          cmake -G "Visual Studio 17 2022" `
-            -A ARM64 `
-            -D CMAKE_SYSTEM_NAME=Windows `
-            -D CMAKE_SYSTEM_PROCESSOR=ARM64 `
-            -D CMAKE_BUILD_TYPE=Release `
-            -D CMAKE_INSTALL_PREFIX=install `
-            -D BUILD_DOCS=OFF `
-            -D BUILD_EXAMPLES=OFF `
-            -D BUILD_TESTS=OFF `
-            -D BUILD_PERF_TESTS=OFF `
-            -D BUILD_JAVA=OFF `
-            -D BUILD_opencv_apps=OFF `
-            -D BUILD_opencv_datasets=OFF `
-            -D BUILD_opencv_gapi=OFF `
-            -D BUILD_opencv_java_bindings_generator=OFF `
-            -D BUILD_opencv_js=OFF `
-            -D BUILD_opencv_python_bindings_generator=OFF `
-            -D BUILD_opencv_world=OFF `
-            -D BUILD_opencv_dnn=OFF `
-            -D WITH_MSMF=ON `
-            -D WITH_MSMF_DXVA=ON `
-            -D WITH_QT=OFF `
-            -D WITH_TESSERACT=OFF `
-            -D WITH_CAROTENE=OFF `
-            -D WITH_GFLAGS=OFF `
-            -D WITH_GLOG=OFF `
-            -D WITH_AVIF=OFF `
-            -D WITH_OGRE=OFF `
-            -D WITH_IPP=OFF `
-            -D WITH_JPEG=ON `
-            -D BUILD_JPEG=ON `
-            -D WITH_JPEG_TURBO=OFF `
-            -D CPU_BASELINE="" `
-            -D CPU_DISPATCH="" `
-            -D ENABLE_SSE=OFF `
-            -D ENABLE_SSE2=OFF `
-            -D ENABLE_SSE3=OFF `
-            -D ENABLE_SSE41=OFF `
-            -D ENABLE_SSE42=OFF `
-            -D ENABLE_AVX=OFF `
-            -D ENABLE_AVX2=OFF `
-            -D CV_DISABLE_OPTIMIZATION=OFF `
-            -D ENABLE_NEON=ON `
-            -D OPENCV_ENABLE_NONFREE=ON `
-            -D OPENCV_EXTRA_MODULES_PATH=D:/opencv_contrib/modules `
-            -D BUILD_SHARED_LIBS=OFF `
-            D:/opencv
-          
-          msbuild INSTALL.vcxproj /t:build /p:configuration=Release /p:platform=ARM64 /maxcpucount
-          
-      - name: Build OpenCVSharp Native
-        shell: powershell
-        run: |
-          Set-Location ${{ github.workspace }}
-          
-          if (Test-Path build_native) { Remove-Item -Recurse -Force build_native }
-          New-Item -ItemType Directory -Force -Path build_native | Out-Null
-          Set-Location build_native
-          
-          cmake -G "Visual Studio 17 2022" -A ARM64 `
-            -D CMAKE_BUILD_TYPE=Release `
-            -D OpenCV_DIR=D:\opencv-build\install `
-            -D CMAKE_INSTALL_PREFIX="$PWD\install" `
-            ..\src\OpenCvSharpExtern
-          
-          msbuild INSTALL.vcxproj /t:build /p:configuration=Release /p:platform=ARM64
+          $v = ${env:OPENCV_VERSION}.Replace(".", "")
+          echo "OPENCV_VERSION_MOD=${v}" >> $env:GITHUB_OUTPUT
 
-      - name: Upload OpenCVSharp Artifacts
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: opencvsharp-native-arm64-windows
-          path: build_native/install/**/*
+          name: opencv${{steps.version.outputs.OPENCV_VERSION_MOD}}_${{matrix.platform}}_${{matrix.arch}}
+          path: build_${{matrix.platform}}_${{matrix.arch}}/install
