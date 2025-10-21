@@ -28,7 +28,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: D:\opencv-install
-          key: opencv-4.11.0-msvc-vs17-arm64-${{ runner.os }}
+          key: opencv-4.11.0-msvc-vs17-arm64-v2-${{ runner.os }}
 
       - name: Clone OpenCV
         if: steps.cache-opencv.outputs.cache-hit != 'true'
@@ -67,7 +67,19 @@ jobs:
         run: |
           cd /d D:\opencv\build
           cmake --build . --config Release --parallel
+          echo.
+          echo ===== Verification des fichiers generes =====
+          dir /b lib\Release
+          dir /b bin\Release
+          echo.
           cmake --install .
+          echo.
+          echo ===== Verification de l'installation =====
+          dir /b D:\opencv-install\ARM64\vc17\lib\*.lib
+          if not exist "D:\opencv-install\ARM64\vc17\lib\opencv_world4110.lib" (
+            echo [ERROR] opencv_world4110.lib non trouve apres installation!
+            exit /b 1
+          )
 
       - name: Build OpenCVSharp Native
         shell: cmd
