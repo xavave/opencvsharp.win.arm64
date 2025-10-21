@@ -76,12 +76,13 @@ jobs:
           call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=arm64 -host_arch=x64 -no_logo
           
           cd /d ${{ github.workspace }}
+          if exist build_native rmdir /s /q build_native
           mkdir build_native
           cd build_native
           
           cmake -G "Ninja" ^
             -D CMAKE_BUILD_TYPE=Release ^
-            -D OpenCV_DIR=D:\opencv-install\ARM64\vc17\lib ^
+            -D OpenCV_DIR=D:\opencv-install ^
             -D CMAKE_INSTALL_PREFIX=%CD%\install ^
             ..\src\OpenCvSharpExtern
           
