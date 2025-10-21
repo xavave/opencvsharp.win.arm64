@@ -34,7 +34,9 @@ $platform = "arm64"
 # arm64 windows 
 
 Rebuild OpenCV :
+
 powershell 
+
 cd C:\dev
 
 ### remove previous build
