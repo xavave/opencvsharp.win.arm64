@@ -1,3 +1,26 @@
+ rebuild OpenCV :
+powershell 
+cd C:\dev
+
+# remove previous build
+Remove-Item -Recurse -Force build_win_arm64
+
+# relaunch build with good version of Tesseract
+.\build_windows.ps1
+
+then rebuild  OpenCVSharp :
+powershellcd C:\dev\opencvsharp.win.arm64\build_native
+Remove-Item CMakeCache.txt -ErrorAction SilentlyContinue
+
+cmake -G "Visual Studio 17 2022" -A ARM64 `
+  -D CMAKE_BUILD_TYPE=Release `
+  -D OpenCV_DIR="C:\dev\build_win_arm64" `
+  -D CMAKE_INSTALL_PREFIX="install" `
+  ..\src\OpenCvSharpExtern
+
+msbuild OpenCvSharpExtern.sln /t:build /p:configuration=Release /p:platform=ARM64 /maxcp
+
+
 ![opencvsharp](https://socialify.git.ci/shimat/opencvsharp/image?description=1&forks=1&language=1&owner=1&pattern=Plus&stargazers=1&theme=Light)
 
 [![Github Actions Windows Status](https://github.com/shimat/opencvsharp/workflows/Windows%20Server%202022/badge.svg)](https://github.com/shimat/opencvsharp/actions)  [![Github Actions Ubuntu Status](https://github.com/shimat/opencvsharp/workflows/Ubuntu%2022.04/badge.svg)](https://github.com/shimat/opencvsharp/actions) [![GitHub license](https://img.shields.io/github/license/shimat/opencvsharp.svg)](https://github.com/shimat/opencvsharp/blob/master/LICENSE) 
