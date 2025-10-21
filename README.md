@@ -1,4 +1,6 @@
- rebuild OpenCV :
+
+
+Rebuild OpenCV :
 powershell 
 cd C:\dev
 
