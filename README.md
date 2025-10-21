@@ -25,8 +25,11 @@ You can change the target platform and the vcpkg path by editing the .ps1 file.
 ##### Change here #####
 
 $vcpkgPath = "C:\Tools\vcpkg"
+
 $platform = "x64"
+
 #$platform = "x86"
+
 
 # arm64 windows 
 
