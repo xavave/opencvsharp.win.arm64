@@ -40,7 +40,7 @@ cd C:\dev
 ### remove previous build
 Remove-Item -Recurse -Force build_win_arm64
 
-### relaunch build with good version of Tesseract
+### launch build
 .\build_windows.ps1
 
 then rebuild  OpenCVSharp :
