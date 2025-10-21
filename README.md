@@ -49,19 +49,22 @@ then rebuild  OpenCVSharp : Open and build build_win_[x64 or x86]/OpenCV.sln by 
 
 if the files already exist but the CMake cache points to the wrong path:
 
-powershell
-
 cd C:\dev\opencvsharp.win.arm64\build_native
 
-Remove-Item CMakeCache.txt -ErrorAction SilentlyContinue #clean 
+# clean
 
-#reconfigure properly
+Remove-Item -Recurse -Force *
+
+# Configure with /MT
 
 cmake -G "Visual Studio 17 2022" -A ARM64 `
   -D CMAKE_BUILD_TYPE=Release `
   -D OpenCV_DIR="C:\dev\build_win_arm64" `
   -D CMAKE_INSTALL_PREFIX="install" `
+  -D CMAKE_MSVC_RUNTIME_LIBRARY="MultiThreaded" `
   ..\src\OpenCvSharpExtern
+
+# Compile
 
 msbuild OpenCvSharpExtern.sln /t:build /p:configuration=Release /p:platform=ARM64 /maxcpucount
 
