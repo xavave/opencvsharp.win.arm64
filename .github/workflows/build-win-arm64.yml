@@ -70,30 +70,23 @@ jobs:
           cd /d D:\opencv\build
           cmake --build . --config Release --parallel
           echo.
-          echo ===== Recherche des fichiers generes =====
-          dir /s /b D:\opencv\build\lib\Release\opencv*.lib 2>nul
-          dir /s /b D:\opencv\build\bin\Release\opencv*.dll 2>nul
+          echo ===== Verification de la structure du build =====
+          dir /s /b lib 2>nul | findstr /i "Release"
+          dir /s /b bin 2>nul | findstr /i "Release"
           echo.
-  
-      - name: Manual Install of OpenCV binaries
-        if: steps.cache-opencv.outputs.cache-hit != 'true'
-        shell: cmd
-        run: |
-          cd /d D:\opencv\build
-          cmake --install .
+          echo ===== Recherche specifique opencv_world =====
+          dir /s /b *.lib 2>nul | findstr /i "opencv_world" || echo Aucun opencv_world.lib trouve
+          dir /s /b *.dll 2>nul | findstr /i "opencv_world" || echo Aucun opencv_world.dll trouve
           echo.
-          echo ===== Copie manuelle des binaires si necessaire =====
-          if not exist "D:\opencv-install\ARM64" mkdir "D:\opencv-install\ARM64"
-          if not exist "D:\opencv-install\ARM64\vc17" mkdir "D:\opencv-install\ARM64\vc17"
-          if not exist "D:\opencv-install\ARM64\vc17\lib" mkdir "D:\opencv-install\ARM64\vc17\lib"
-          if not exist "D:\opencv-install\ARM64\vc17\bin" mkdir "D:\opencv-install\ARM64\vc17\bin"
-  
-          xcopy /Y D:\opencv\build\lib\Release\*.lib D:\opencv-install\ARM64\vc17\lib\ 2>nul
-          xcopy /Y D:\opencv\build\bin\Release\*.dll D:\opencv-install\ARM64\vc17\bin\ 2>nul
-  
-          echo ===== Verification finale =====
-          dir /b D:\opencv-install\ARM64\vc17\lib\*.lib
-          dir /b D:\opencv-install\ARM64\vc17\bin\*.dll
+          echo ===== Liste de tous les .lib compiles =====
+          dir /s /b lib\Release\*.lib 2>nul || echo Aucun .lib dans lib\Release
+          echo.
+          echo ===== Verifier si le projet opencv_world existe =====
+          if exist "modules\world\opencv_world.vcxproj" (
+            echo Project opencv_world.vcxproj existe
+          ) else (
+            echo ERREUR: opencv_world.vcxproj n existe pas!
+          )
 
       - name: Build OpenCVSharp Native
         shell: cmd
