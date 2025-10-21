@@ -1,13 +1,13 @@
--arm64 windows 
+# arm64 windows 
 
 Rebuild OpenCV :
 powershell 
 cd C:\dev
 
-# remove previous build
+### remove previous build
 Remove-Item -Recurse -Force build_win_arm64
 
-# relaunch build with good version of Tesseract
+### relaunch build with good version of Tesseract
 .\build_windows.ps1
 
 then rebuild  OpenCVSharp :
