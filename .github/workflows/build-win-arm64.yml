@@ -62,7 +62,7 @@ jobs:
             ..
 
       - name: Build OpenCV
-        if: steps.cache-opencv.outputs.cache-hit != 'true'
+        if: steps.cache-opencv.outputs.cache-hit != 'true' 
         shell: cmd
         run: |
           cd /d D:\opencv\build
