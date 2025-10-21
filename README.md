@@ -47,11 +47,11 @@ Remove-Item -Recurse -Force build_win_arm64
 
 then rebuild  OpenCVSharp : Open and build build_win_[x64 or x86]/OpenCV.sln by Visual Studio.
 
+# clean
+
 if the files already exist but the CMake cache points to the wrong path:
 
 cd C:\dev\opencvsharp.win.arm64\build_native
-
-# clean
 
 Remove-Item -Recurse -Force *
 
