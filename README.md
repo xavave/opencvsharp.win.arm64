@@ -44,9 +44,13 @@ Remove-Item -Recurse -Force build_win_arm64
  powershell -ExecutionPolicy Bypass -File .\build_windows.ps1
 
 then rebuild  OpenCVSharp :
+
 powershell
+
 cd C:\dev\opencvsharp.win.arm64\build_native
+
 Remove-Item CMakeCache.txt -ErrorAction SilentlyContinue
+
 
 cmake -G "Visual Studio 17 2022" -A ARM64 `
   -D CMAKE_BUILD_TYPE=Release `
