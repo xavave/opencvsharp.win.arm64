@@ -52,7 +52,7 @@ function BuildForWindows($platform, $vcpkgPath, $runMsbuild) {
         -D WITH_MSMF_DXVA=${msmfFlag} `
         -D WITH_QT=OFF `
         -D WITH_FREETYPE=OFF `
-        -D WITH_TESSERACT=ON `
+        -D WITH_TESSERACT=OFF `
         -D WITH_CAROTENE=${caroteneFlag} `
         -D Tesseract_INCLUDE_DIR="${vcpkgPath}/installed/${platform}-windows-static/include" `
         -D Tesseract_LIBRARY="${vcpkgPath}/installed/${platform}-windows-static/lib/tesseract55.lib" `
