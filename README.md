@@ -58,7 +58,7 @@ cmake -G "Visual Studio 17 2022" -A ARM64 `
   -D CMAKE_INSTALL_PREFIX="install" `
   ..\src\OpenCvSharpExtern
 
-msbuild OpenCvSharpExtern.sln /t:build /p:configuration=Release /p:platform=ARM64 /maxcp
+msbuild OpenCvSharpExtern.sln /t:build /p:configuration=Release /p:platform=ARM64 /maxcpucount
 
 
 ![opencvsharp](https://socialify.git.ci/shimat/opencvsharp/image?description=1&forks=1&language=1&owner=1&pattern=Plus&stargazers=1&theme=Light)
