@@ -28,15 +28,15 @@ jobs:
         uses: actions/cache@v4
         with:
           path: D:\opencv-install
-          key: opencv-4.12.0-msvc-vs17-arm64-${{ runner.os }}
+          key: opencv-4.11.0-msvc-vs17-arm64-${{ runner.os }}
 
       - name: Clone OpenCV
         if: steps.cache-opencv.outputs.cache-hit != 'true'
         shell: cmd
         run: |
           cd /d D:\
-          git clone --depth 1 --branch 4.12.0 https://github.com/opencv/opencv.git
-          git clone --depth 1 --branch 4.12.0 https://github.com/opencv/opencv_contrib.git
+          git clone --depth 1 --branch 4.11.0 https://github.com/opencv/opencv.git
+          git clone --depth 1 --branch 4.11.0 https://github.com/opencv/opencv_contrib.git
 
       - name: Configure OpenCV
         if: steps.cache-opencv.outputs.cache-hit != 'true'
@@ -74,18 +74,18 @@ jobs:
         run: |
           for /f "usebackq delims=" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath`) do set VSINSTALL=%%i
           call "%VSINSTALL%\Common7\Tools\VsDevCmd.bat" -arch=arm64 -host_arch=x64 -no_logo
-          
+      
           cd /d ${{ github.workspace }}
           if exist build_native rmdir /s /q build_native
           mkdir build_native
           cd build_native
-          
-          cmake -G "Ninja" ^
+      
+          cmake -G "Visual Studio 17 2022" -A ARM64 ^
             -D CMAKE_BUILD_TYPE=Release ^
             -D OpenCV_DIR=D:\opencv-install ^
             -D CMAKE_INSTALL_PREFIX=%CD%\install ^
             ..\src\OpenCvSharpExtern
-          
+      
           cmake --build . --config Release
           cmake --install .
 
